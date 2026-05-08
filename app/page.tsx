@@ -18,7 +18,6 @@ const ATTEMPT_KEY = "teamwise_attempts_v1";
 const roleLabels: Record<string, string> = {
   leader: "หัวหน้า",
   member: "ลูกน้อง / Team Member",
-  both: "ทั้งหัวหน้าและลูกน้อง",
 };
 
 type Player = {
@@ -58,11 +57,12 @@ type Attempt = {
   displayName: string;
   team: string;
   role: string;
+  roleLabel: string;
   date: string;
   bankDay: number;
-  leaderScore: number;
-  memberScore: number;
+  score: number;
   totalScore: number;
+  maxScore: number;
   level: string;
   completedAt: string;
 };
@@ -416,9 +416,9 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
 ];
 
 const demoRanking = [
-  { name: "แนน ก.", team: "Sales", score: 20, streak: 8 },
-  { name: "บี พ.", team: "HR", score: 19, streak: 5 },
-  { name: "ต้น ส.", team: "Ops", score: 18, streak: 7 },
+  { name: "แนน ก.", team: "Agro-สุกร", score: 10, streak: 8 },
+  { name: "บี พ.", team: "SSC-MDM", score: 9, streak: 5 },
+  { name: "ต้น ส.", team: "Business Service", score: 8, streak: 7 },
 ];
 
 function getDisplayName(player: Player) {
@@ -427,9 +427,9 @@ function getDisplayName(player: Player) {
 }
 
 function levelFromScore(score: number) {
-  if (score >= 18) return "Role Model";
-  if (score >= 14) return "Strong Performer";
-  if (score >= 10) return "Developing";
+  if (score >= 9) return "Role Model";
+  if (score >= 7) return "Strong Performer";
+  if (score >= 5) return "Developing";
   return "Needs Awareness";
 }
 
@@ -458,7 +458,9 @@ export default function DailyTeamWiseChallenge() {
   const today = todayKey();
   const dayIndex = getDayIndex(today);
   const daySet = questionBank[dayIndex];
-  const todaysQuestions = [daySet.leader, daySet.member];
+  const selectedRole = player?.primaryRole === "member" ? "member" : "leader";
+  const roleQuestion = daySet[selectedRole];
+  const todaysQuestions = [roleQuestion];
 
   useEffect(() => {
     const savedPlayer = loadJson<Player | null>(STORAGE_KEY, null);
@@ -497,7 +499,7 @@ export default function DailyTeamWiseChallenge() {
       fullName: form.fullName.trim(),
       nickname: form.nickname.trim(),
       team: form.team.trim(),
-      primaryRole: form.primaryRole,
+      primaryRole: form.primaryRole === "member" ? "member" : "leader",
       registeredAt: player?.registeredAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -510,12 +512,9 @@ export default function DailyTeamWiseChallenge() {
 
   const submitQuiz = () => {
     if (!player) return;
-    const leaderQuestion = daySet.leader;
-    const memberQuestion = daySet.member;
-    const leaderSelected = leaderQuestion.options.find((o) => o.id === answers[leaderQuestion.id]);
-    const memberSelected = memberQuestion.options.find((o) => o.id === answers[memberQuestion.id]);
-    const leaderScore = leaderSelected?.score || 0;
-    const memberScore = memberSelected?.score || 0;
+    const selectedQuestion = roleQuestion;
+    const selectedOption = selectedQuestion.options.find((o) => o.id === answers[selectedQuestion.id]);
+    const score = selectedOption?.score || 0;
 
     const attempt: Attempt = {
       employeeId: player.employeeId,
@@ -523,12 +522,13 @@ export default function DailyTeamWiseChallenge() {
       displayName: getDisplayName(player),
       team: player.team,
       role: player.primaryRole,
+      roleLabel: roleLabels[selectedRole],
       date: today,
       bankDay: daySet.day,
-      leaderScore,
-      memberScore,
-      totalScore: leaderScore + memberScore,
-      level: levelFromScore(leaderScore + memberScore),
+      score,
+      totalScore: score,
+      maxScore: 10,
+      level: levelFromScore(score),
       completedAt: new Date().toISOString(),
     };
 
@@ -573,13 +573,14 @@ export default function DailyTeamWiseChallenge() {
 
   const attemptForResult = currentAttempt || {
     totalScore,
-    leaderScore: daySet.leader.options.find((o) => o.id === answers[daySet.leader.id])?.score || 0,
-    memberScore: daySet.member.options.find((o) => o.id === answers[daySet.member.id])?.score || 0,
+    score: totalScore,
+    maxScore: 10,
+    roleLabel: roleLabels[selectedRole],
     level: levelFromScore(totalScore),
     bankDay: daySet.day,
   };
 
-  const resultMicroTip = `${daySet.leader.microTip} / ${daySet.member.microTip}`;
+  const resultMicroTip = roleQuestion.microTip;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 text-slate-900">
@@ -596,7 +597,7 @@ export default function DailyTeamWiseChallenge() {
               </div>
               <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Daily TeamWise Challenge</h1>
               <p className="mt-2 max-w-2xl text-slate-600">
-                ตอบวันละ 2 คำถาม เพื่อฝึกมุมมองหัวหน้าและลูกน้อง พร้อมสะสมคะแนนและ Ranking อย่างต่อเนื่อง
+                ตอบวันละ 1 คำถามตามบทบาทหลักของคุณ เพื่อฝึกพฤติกรรมการทำงานที่สร้าง well-being พร้อมสะสมคะแนนและ Ranking อย่างต่อเนื่อง
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -632,13 +633,13 @@ export default function DailyTeamWiseChallenge() {
                 </div>
                 <div className="space-y-2">
                   <Label>ทีม / แผนก</Label>
-                  <Input value={form.team} onChange={(e) => setForm({ ...form, team: e.target.value })} placeholder="เช่น Sales, HR, Operations" />
+                  <Input value={form.team} onChange={(e) => setForm({ ...form, team: e.target.value })} placeholder="ตัวอย่าง Agro-สุกร, SSC-MDM, CoE, ธุรกิจค้าต่างประเทศ, Business Service" />
                 </div>
               </div>
 
               <div className="mt-5">
                 <Label>บทบาทหลักของคุณในปัจจุบัน</Label>
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
                   {Object.entries(roleLabels).map(([key, label]) => (
                     <button
                       key={key}
@@ -647,7 +648,7 @@ export default function DailyTeamWiseChallenge() {
                     >
                       <div className="font-semibold">{label}</div>
                       <div className={`mt-1 text-sm ${form.primaryRole === key ? "text-slate-200" : "text-slate-500"}`}>
-                        {key === "both" ? "สำหรับผู้ที่มีทั้งหน้าที่นำทีมและเป็นสมาชิกทีม" : "ใช้เพื่อปรับข้อความต้อนรับและการวิเคราะห์ผล"}
+                        ใช้เพื่อเลือกคำถามรายวันที่ตรงกับบทบาทของคุณ
                       </div>
                     </button>
                   ))}
@@ -672,7 +673,7 @@ export default function DailyTeamWiseChallenge() {
                 </div>
                 <h2 className="text-3xl font-bold">ยินดีต้อนรับกลับ “{player.nickname}”</h2>
                 <p className="mt-3 text-lg text-slate-600">
-                  บทบาทหลักของคุณคือ: <span className="font-semibold text-slate-900">{roleLabels[player.primaryRole]}</span>
+                  บทบาทหลักของคุณคือ: <span className="font-semibold text-slate-900">{roleLabels[selectedRole]}</span>
                 </p>
                 <div className="mt-6 rounded-3xl bg-slate-900 p-6 text-white">
                   <p className="text-2xl font-semibold leading-relaxed">วันนี้เรามาเริ่มสร้างองค์กรที่มี well-being ไปด้วยกัน</p>
@@ -689,12 +690,8 @@ export default function DailyTeamWiseChallenge() {
                 <h3 className="mb-4 text-lg font-semibold">Daily Challenge วันนี้</h3>
                 <div className="space-y-3">
                   <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="font-semibold">1. {daySet.leader.theme}</div>
-                    <p className="text-sm text-slate-600">{daySet.leader.competency}</p>
-                  </div>
-                  <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="font-semibold">2. {daySet.member.theme}</div>
-                    <p className="text-sm text-slate-600">{daySet.member.competency}</p>
+                    <div className="font-semibold">คำถามบทบาท: {roleLabels[selectedRole]}</div>
+                    <p className="text-sm text-slate-600">{roleQuestion.theme} · {roleQuestion.competency}</p>
                   </div>
                 </div>
               </div>
@@ -709,7 +706,7 @@ export default function DailyTeamWiseChallenge() {
                 <div className="p-6">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-sm font-medium text-slate-500">Day {daySet.day} · ข้อ {index + 1}/2 · {question.title}</div>
+                      <div className="text-sm font-medium text-slate-500">Day {daySet.day} · ข้อ {index + 1}/1 · {question.title}</div>
                       <h2 className="mt-1 text-xl font-semibold">{question.scenario}</h2>
                       <p className="mt-2 text-slate-600">{question.question}</p>
                     </div>
@@ -750,28 +747,18 @@ export default function DailyTeamWiseChallenge() {
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="rounded-3xl bg-slate-900 p-5 text-white md:col-span-2">
                   <div className="text-sm text-slate-300">คะแนนวันนี้</div>
-                  <div className="mt-2 text-5xl font-bold">{attemptForResult.totalScore}/20</div>
+                  <div className="mt-2 text-5xl font-bold">{attemptForResult.totalScore}/10</div>
                   <div className="mt-2 text-lg">{attemptForResult.level}</div>
                 </div>
-                <div className="rounded-3xl bg-white p-5 shadow-sm">
-                  <div className="text-sm text-slate-500">Leader Mindset</div>
-                  <div className="mt-2 text-3xl font-bold">{attemptForResult.leaderScore}/10</div>
-                </div>
-                <div className="rounded-3xl bg-white p-5 shadow-sm">
-                  <div className="text-sm text-slate-500">Team Member Mindset</div>
-                  <div className="mt-2 text-3xl font-bold">{attemptForResult.memberScore}/10</div>
+                <div className="rounded-3xl bg-white p-5 shadow-sm md:col-span-2">
+                  <div className="text-sm text-slate-500">บทบาทคำถามวันนี้</div>
+                  <div className="mt-2 text-2xl font-bold">{attemptForResult.roleLabel || roleLabels[selectedRole]}</div>
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div className="rounded-3xl bg-slate-100 p-5">
-                  <h3 className="font-semibold">Leader Reflection</h3>
-                  <p className="mt-2 text-slate-700">{daySet.leader.explanation}</p>
-                </div>
-                <div className="rounded-3xl bg-slate-100 p-5">
-                  <h3 className="font-semibold">Team Member Reflection</h3>
-                  <p className="mt-2 text-slate-700">{daySet.member.explanation}</p>
-                </div>
+              <div className="mt-5 rounded-3xl bg-slate-100 p-5">
+                <h3 className="font-semibold">Reflection วันนี้</h3>
+                <p className="mt-2 text-slate-700">{roleQuestion.explanation}</p>
               </div>
 
               <div className="mt-5 rounded-3xl bg-white p-5 shadow-sm">
@@ -796,7 +783,7 @@ export default function DailyTeamWiseChallenge() {
                 <div className="rounded-2xl bg-slate-100 p-3"><Trophy className="h-7 w-7" /></div>
                 <div>
                   <h2 className="text-2xl font-bold">Ranking วันนี้</h2>
-                  <p className="text-slate-600">ตัวอย่าง Ranking รายวัน ใช้คะแนนเต็ม 20 คะแนน</p>
+                  <p className="text-slate-600">ตัวอย่าง Ranking รายวัน ใช้คะแนนเต็ม 10 คะแนน</p>
                 </div>
               </div>
 
@@ -817,7 +804,7 @@ export default function DailyTeamWiseChallenge() {
                         <td className="p-4 font-semibold">{index + 1}</td>
                         <td className="p-4">{row.name}</td>
                         <td className="p-4">{row.team}</td>
-                        <td className="p-4 font-semibold">{row.score}/20</td>
+                        <td className="p-4 font-semibold">{row.score}/10</td>
                         <td className="p-4">{row.streak} วัน</td>
                       </tr>
                     ))}
