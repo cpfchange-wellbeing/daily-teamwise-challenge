@@ -1,131 +1,31 @@
-"use client";
-
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  CalendarDays,
-  CheckCircle2,
-  HeartHandshake,
-  RotateCcw,
-  Sparkles,
-  Trophy,
-  Users,
-} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Trophy, HeartHandshake, Users, Sparkles, RotateCcw, CheckCircle2, CalendarDays } from "lucide-react";
 
 const STORAGE_KEY = "teamwise_player_v1";
 const ATTEMPT_KEY = "teamwise_attempts_v1";
 
-const roleLabels: Record<string, string> = {
+const roleLabels = {
   leader: "หัวหน้า",
   member: "ลูกน้อง / Team Member",
 };
-
-type Player = {
-  employeeId: string;
-  fullName: string;
-  nickname: string;
-  team: string;
-  primaryRole: string;
-  registeredAt?: string;
-  updatedAt?: string;
-};
-
-type Option = {
-  id: string;
-  label: string;
-  text: string;
-  score: number;
-};
-
-type Question = {
-  id: string;
-  roleType: "leader" | "member";
-  title: string;
-  theme: string;
-  competency: string;
-  scenario: string;
-  question: string;
-  options: Option[];
-  bestOptionId: string;
-  explanation: string;
-  microTip: string;
-};
-
-type Attempt = {
-  employeeId: string;
-  nickname: string;
-  displayName: string;
-  team: string;
-  role: string;
-  roleLabel: string;
-  date: string;
-  bankDay: number;
-  score: number;
-  totalScore: number;
-  maxScore: number;
-  level: string;
-  completedAt: string;
-};
-
-function Button({
-  children,
-  onClick,
-  disabled,
-  variant = "primary",
-  className = "",
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  variant?: "primary" | "outline" | "ghost";
-  className?: string;
-}) {
-  const base =
-    "inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
-  const styles = {
-    primary: "bg-slate-900 text-white hover:bg-slate-800",
-    outline: "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50",
-    ghost: "bg-transparent text-slate-700 hover:bg-slate-100",
-  };
-
-  return (
-    <button className={`${base} ${styles[variant]} ${className}`} onClick={onClick} disabled={disabled}>
-      {children}
-    </button>
-  );
-}
-
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-900 ${
-        props.className || ""
-      }`}
-    />
-  );
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <label className="text-sm font-semibold text-slate-700">{children}</label>;
-}
-
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-3xl bg-white shadow-sm ${className}`}>{children}</div>;
-}
 
 function todayKey() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
 }
 
-function getDayIndex(dateKey: string) {
+function getDayIndex(dateKey) {
   const startDate = new Date("2026-05-08T00:00:00+07:00");
   const currentDate = new Date(`${dateKey}T00:00:00+07:00`);
-  const diffDays = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
   return ((diffDays % 7) + 7) % 7;
 }
 
-const questionBank: { day: number; leader: Question; member: Question }[] = [
+const questionBank = [
   {
     day: 1,
     leader: {
@@ -143,8 +43,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D1L-D", label: "D", text: "ดึงงานกลับมาทำเอง เพื่อให้มั่นใจว่างานจะเสร็จทัน", score: 4 },
       ],
       bestOptionId: "D1L-B",
-      explanation:
-        "การพูดคุยส่วนตัวช่วยรักษาศักดิ์ศรีของลูกทีม และการถามสาเหตุก่อนตัดสินช่วยให้หัวหน้าเข้าใจปัญหาที่แท้จริง ขณะเดียวกันการตกลงวิธีป้องกันร่วมกันยังช่วยสร้าง accountability โดยไม่ทำลายความไว้วางใจ",
+      explanation: "การพูดคุยส่วนตัวช่วยรักษาศักดิ์ศรีของลูกทีม และการถามสาเหตุก่อนตัดสินช่วยให้หัวหน้าเข้าใจปัญหาที่แท้จริง ขณะเดียวกันการตกลงวิธีป้องกันร่วมกันยังช่วยสร้าง accountability โดยไม่ทำลายความไว้วางใจ",
       microTip: "Feedback ที่ดีไม่ใช่การตำหนิ แต่คือการทำให้พฤติกรรมดีขึ้นอย่างชัดเจนและปลอดภัยพอให้คนกล้าปรับตัว",
     },
     member: {
@@ -162,8 +61,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D1M-D", label: "D", text: "แจ้งหัวหน้าล่วงหน้า พร้อมบอกสาเหตุ ทางเลือก และเวลาที่คาดว่าจะทำเสร็จ", score: 10 },
       ],
       bestOptionId: "D1M-D",
-      explanation:
-        "การแจ้งล่วงหน้าพร้อมทางเลือกแสดงถึงความรับผิดชอบ ไม่ใช่การโยนปัญหาให้หัวหน้า แต่เป็นการช่วยให้ทีมมีเวลาตัดสินใจและจัดลำดับงานใหม่ได้ทัน",
+      explanation: "การแจ้งล่วงหน้าพร้อมทางเลือกแสดงถึงความรับผิดชอบ ไม่ใช่การโยนปัญหาให้หัวหน้า แต่เป็นการช่วยให้ทีมมีเวลาตัดสินใจและจัดลำดับงานใหม่ได้ทัน",
       microTip: "การแจ้งปัญหาเร็วไม่ได้แปลว่าคุณทำงานไม่ดี แต่แปลว่าคุณรับผิดชอบต่อผลลัพธ์ของทีม",
     },
   },
@@ -184,8 +82,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D2L-D", label: "D", text: "สรุปเองว่าไม่มีปัญหา เพราะไม่มีใครพูดในที่ประชุม", score: 1 },
       ],
       bestOptionId: "D2L-A",
-      explanation:
-        "ความเงียบในทีมไม่ได้แปลว่าไม่มีปัญหา แต่อาจแปลว่าคนยังไม่รู้สึกปลอดภัยพอที่จะพูด หัวหน้าจึงควรออกแบบพื้นที่และวิธีสื่อสารที่ลดความกลัวการถูกตัดสิน",
+      explanation: "ความเงียบในทีมไม่ได้แปลว่าไม่มีปัญหา แต่อาจแปลว่าคนยังไม่รู้สึกปลอดภัยพอที่จะพูด หัวหน้าจึงควรออกแบบพื้นที่และวิธีสื่อสารที่ลดความกลัวการถูกตัดสิน",
       microTip: "ถ้าอยากให้คนกล้าพูด หัวหน้าต้องทำให้เขาเชื่อว่าการพูดความจริงจะไม่ทำให้เขาเสียความปลอดภัย",
     },
     member: {
@@ -203,8 +100,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D2M-D", label: "D", text: "พูดแรง ๆ ในที่ประชุม เพื่อให้ทุกคนเห็นว่าปัญหานี้สำคัญ", score: 4 },
       ],
       bestOptionId: "D2M-C",
-      explanation:
-        "การกล้าพูดไม่จำเป็นต้องขัดแย้งหรือโจมตีใคร หากสื่อสารด้วยข้อมูล ความเคารพ และเจตนาช่วยทีม จะทำให้ความเห็นของคุณมีน้ำหนักและสร้างประโยชน์ต่อการตัดสินใจ",
+      explanation: "การกล้าพูดไม่จำเป็นต้องขัดแย้งหรือโจมตีใคร หากสื่อสารด้วยข้อมูล ความเคารพ และเจตนาช่วยทีม จะทำให้ความเห็นของคุณมีน้ำหนักและสร้างประโยชน์ต่อการตัดสินใจ",
       microTip: "การพูดอย่างมืออาชีพคือการกล้าบอกความจริงโดยไม่ทำร้ายความสัมพันธ์",
     },
   },
@@ -225,8 +121,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D3L-D", label: "D", text: "ทบทวนว่าตอนมอบหมายงาน คุณสื่อสารเป้าหมาย ขอบเขต deadline และผลลัพธ์ที่คาดหวังชัดพอหรือไม่", score: 10 },
       ],
       bestOptionId: "D3L-D",
-      explanation:
-        "การมอบหมายงานที่ดีไม่ใช่แค่บอกว่าให้ทำอะไร แต่ต้องสื่อสารผลลัพธ์ที่ต้องการ เกณฑ์ความสำเร็จ ขอบเขตงาน และจุดที่ต้องรายงานความคืบหน้าให้ชัดเจน",
+      explanation: "การมอบหมายงานที่ดีไม่ใช่แค่บอกว่าให้ทำอะไร แต่ต้องสื่อสารผลลัพธ์ที่ต้องการ เกณฑ์ความสำเร็จ ขอบเขตงาน และจุดที่ต้องรายงานความคืบหน้าให้ชัดเจน",
       microTip: "งานที่ออกมาไม่ตรงใจ อาจไม่ได้เกิดจากคนทำไม่เก่งเสมอไป แต่อาจเกิดจาก brief ที่ไม่ชัดพอ",
     },
     member: {
@@ -244,8 +139,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D3M-D", label: "D", text: "รอให้หัวหน้าอธิบายเพิ่มเอง หากเรื่องนี้สำคัญจริง", score: 1 },
       ],
       bestOptionId: "D3M-A",
-      explanation:
-        "Ownership ไม่ได้แปลว่าต้องทำเองทุกอย่างโดยไม่ถาม แต่คือการรับผิดชอบให้ตัวเองเข้าใจงานก่อนเริ่ม เพื่อเพิ่มโอกาสให้งานออกมาตรงเป้าหมาย",
+      explanation: "Ownership ไม่ได้แปลว่าต้องทำเองทุกอย่างโดยไม่ถาม แต่คือการรับผิดชอบให้ตัวเองเข้าใจงานก่อนเริ่ม เพื่อเพิ่มโอกาสให้งานออกมาตรงเป้าหมาย",
       microTip: "คนที่มี ownership จะไม่รอให้ทุกอย่างชัดเอง แต่จะช่วยทำให้ความคาดหวังชัดขึ้นตั้งแต่ต้น",
     },
   },
@@ -266,8 +160,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D4L-D", label: "D", text: "รีบเสนอวิธีแก้ทันที โดยยังไม่ฟังรายละเอียดทั้งหมด", score: 4 },
       ],
       bestOptionId: "D4L-C",
-      explanation:
-        "การรับฟังที่ดีเริ่มจากการเข้าใจสถานการณ์จริง ไม่ลดทอนความรู้สึกของลูกทีม และไม่รีบแก้ปัญหาก่อนเข้าใจภาระงานที่แท้จริง",
+      explanation: "การรับฟังที่ดีเริ่มจากการเข้าใจสถานการณ์จริง ไม่ลดทอนความรู้สึกของลูกทีม และไม่รีบแก้ปัญหาก่อนเข้าใจภาระงานที่แท้จริง",
       microTip: "บางครั้งสิ่งที่ทีมต้องการก่อนคำตอบ คือการได้รับฟังอย่างจริงจัง",
     },
     member: {
@@ -285,8 +178,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D4M-D", label: "D", text: "ขอโทษหลายครั้ง แต่ไม่ถามว่าควรปรับอย่างไร", score: 5 },
       ],
       bestOptionId: "D4M-B",
-      explanation:
-        "การรับ feedback อย่างมืออาชีพไม่ใช่การยอมรับทุกอย่างโดยไม่คิด แต่คือการฟังเพื่อเข้าใจ ถามให้ชัด และแปลง feedback เป็นการลงมือปรับปรุง",
+      explanation: "การรับ feedback อย่างมืออาชีพไม่ใช่การยอมรับทุกอย่างโดยไม่คิด แต่คือการฟังเพื่อเข้าใจ ถามให้ชัด และแปลง feedback เป็นการลงมือปรับปรุง",
       microTip: "Feedback ไม่ได้บอกว่าคุณไม่ดี แต่บอกว่ามีจุดไหนที่คุณสามารถทำให้ดีขึ้นได้",
     },
   },
@@ -307,8 +199,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D5L-D", label: "D", text: "บอกทั้งสองคนให้หยุดทะเลาะกัน โดยไม่ต้องลงรายละเอียด", score: 5 },
       ],
       bestOptionId: "D5L-A",
-      explanation:
-        "ความขัดแย้งที่ไม่ถูกจัดการอาจกลายเป็นปัญหาความไว้วางใจในทีม หัวหน้าควรช่วยแยกข้อเท็จจริงออกจากอารมณ์ และพาทีมกลับมาคุยกันที่เป้าหมายร่วม",
+      explanation: "ความขัดแย้งที่ไม่ถูกจัดการอาจกลายเป็นปัญหาความไว้วางใจในทีม หัวหน้าควรช่วยแยกข้อเท็จจริงออกจากอารมณ์ และพาทีมกลับมาคุยกันที่เป้าหมายร่วม",
       microTip: "การจัดการความขัดแย้งที่ดีไม่ใช่การหาคนผิด แต่คือการทำให้คนกลับมาร่วมมือกันได้",
     },
     member: {
@@ -326,8 +217,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D5M-D", label: "D", text: "คุยกับเพื่อนร่วมทีมโดยตรงอย่างสุภาพ อธิบายผลกระทบ และชวนหาวิธีทำงานที่เหมาะกับทั้งสองฝ่าย", score: 10 },
       ],
       bestOptionId: "D5M-D",
-      explanation:
-        "การทำงานเป็นทีมต้องกล้าคุยเรื่องที่ไม่สบายใจด้วยความเคารพ การพูดตรงกับคนที่เกี่ยวข้องช่วยลดความเข้าใจผิดและป้องกันปัญหาลุกลาม",
+      explanation: "การทำงานเป็นทีมต้องกล้าคุยเรื่องที่ไม่สบายใจด้วยความเคารพ การพูดตรงกับคนที่เกี่ยวข้องช่วยลดความเข้าใจผิดและป้องกันปัญหาลุกลาม",
       microTip: "ความร่วมมือไม่ได้แปลว่าต้องเห็นด้วยเสมอ แต่ต้องคุยกันให้กลับมาทำงานร่วมกันได้",
     },
   },
@@ -348,8 +238,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D6L-D", label: "D", text: "ทำงานแทนทีมให้มากที่สุด เพื่อไม่ให้ทีมเหนื่อย", score: 4 },
       ],
       bestOptionId: "D6L-C",
-      explanation:
-        "Well-being ในทีมไม่ใช่แค่การบอกให้คนพัก แต่รวมถึงการจัดลำดับงานให้ชัด ลดงานที่ไม่จำเป็น และกล้าสื่อสารข้อจำกัดกับผู้เกี่ยวข้องอย่างเป็นระบบ",
+      explanation: "Well-being ในทีมไม่ใช่แค่การบอกให้คนพัก แต่รวมถึงการจัดลำดับงานให้ชัด ลดงานที่ไม่จำเป็น และกล้าสื่อสารข้อจำกัดกับผู้เกี่ยวข้องอย่างเป็นระบบ",
       microTip: "ทีมที่มี well-being ไม่ใช่ทีมที่ไม่มีงานหนัก แต่เป็นทีมที่รู้ว่าอะไรสำคัญจริงและมีพื้นที่จัดการพลังงานของตัวเอง",
     },
     member: {
@@ -367,8 +256,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D6M-D", label: "D", text: "บ่นกับเพื่อนร่วมงานเพื่อระบาย แต่ยังไม่แจ้งปัญหาอย่างเป็นระบบ", score: 4 },
       ],
       bestOptionId: "D6M-A",
-      explanation:
-        "การดูแล well-being ของตัวเองเป็นส่วนหนึ่งของความรับผิดชอบต่องาน เพราะเมื่อพลังงานลดลง คุณภาพงานและการทำงานร่วมกับผู้อื่นอาจได้รับผลกระทบ การสื่อสารอย่างเป็นระบบช่วยให้ทีมจัดการสถานการณ์ได้ดีขึ้น",
+      explanation: "การดูแล well-being ของตัวเองเป็นส่วนหนึ่งของความรับผิดชอบต่องาน เพราะเมื่อพลังงานลดลง คุณภาพงานและการทำงานร่วมกับผู้อื่นอาจได้รับผลกระทบ การสื่อสารอย่างเป็นระบบช่วยให้ทีมจัดการสถานการณ์ได้ดีขึ้น",
       microTip: "การขอปรับ priority ไม่ใช่ความอ่อนแอ แต่เป็นการดูแลคุณภาพงานและสุขภาพของทีมในระยะยาว",
     },
   },
@@ -389,8 +277,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D7L-D", label: "D", text: "ถามกลับอย่างสร้างสรรค์ เช่น “มีทางเลือกที่จะช่วยแก้ปัญหานี้ให้พี่ไหม / ลองออกความเห็นว่าจะแก้ปัญหานี้อย่างไร” และช่วยเขาคิดผ่านทางเลือกก่อนตัดสินใจ", score: 10 },
       ],
       bestOptionId: "D7L-D",
-      explanation:
-        "Coaching Mindset คือการช่วยให้ลูกทีมคิดเป็นและตัดสินใจดีขึ้น ไม่ใช่การให้คำตอบทุกครั้ง หัวหน้าควรถามคำถามที่ช่วยให้เขามองเห็นทางเลือกและเรียนรู้จากกระบวนการคิด",
+      explanation: "Coaching Mindset คือการช่วยให้ลูกทีมคิดเป็นและตัดสินใจดีขึ้น ไม่ใช่การให้คำตอบทุกครั้ง หัวหน้าควรถามคำถามที่ช่วยให้เขามองเห็นทางเลือกและเรียนรู้จากกระบวนการคิด",
       microTip: "หัวหน้าที่ดีไม่ได้ทำให้ทีมพึ่งพาเขาตลอดเวลา แต่ช่วยให้ทีมค่อย ๆ พึ่งพาตัวเองได้มากขึ้น",
     },
     member: {
@@ -408,8 +295,7 @@ const questionBank: { day: number; leader: Question; member: Question }[] = [
         { id: "D7M-D", label: "D", text: "รอให้ปัญหาชัดเจนกว่านี้ก่อนค่อยแจ้ง", score: 2 },
       ],
       bestOptionId: "D7M-B",
-      explanation:
-        "การเสนอทางออกช่วยให้การสื่อสารมีคุณค่ามากขึ้น เพราะไม่ได้หยุดอยู่ที่การรายงานปัญหา แต่ช่วยให้หัวหน้าและทีมตัดสินใจได้เร็วขึ้นบนข้อมูลที่ครบกว่าเดิม",
+      explanation: "การเสนอทางออกช่วยให้การสื่อสารมีคุณค่ามากขึ้น เพราะไม่ได้หยุดอยู่ที่การรายงานปัญหา แต่ช่วยให้หัวหน้าและทีมตัดสินใจได้เร็วขึ้นบนข้อมูลที่ครบกว่าเดิม",
       microTip: "เมื่อเจอปัญหา ลองถามตัวเองว่า “ฉันเสนอทางเลือกอะไรให้ทีมได้บ้าง” ก่อนส่งต่อเรื่องให้คนอื่น",
     },
   },
@@ -421,20 +307,19 @@ const demoRanking = [
   { name: "ต้น ส.", team: "Business Service", score: 8, streak: 7 },
 ];
 
-function getDisplayName(player: Player) {
+function getDisplayName(player) {
   const initial = player.fullName?.trim()?.[0] || "";
   return `${player.nickname || "ผู้เล่น"}${initial ? ` ${initial}.` : ""}`;
 }
 
-function levelFromScore(score: number) {
+function levelFromScore(score) {
   if (score >= 9) return "Role Model";
   if (score >= 7) return "Strong Performer";
   if (score >= 5) return "Developing";
   return "Needs Awareness";
 }
 
-function loadJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+function loadJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
   } catch {
@@ -443,11 +328,11 @@ function loadJson<T>(key: string, fallback: T): T {
 }
 
 export default function DailyTeamWiseChallenge() {
-  const [player, setPlayer] = useState<Player | null>(null);
+  const [player, setPlayer] = useState(null);
   const [screen, setScreen] = useState("loading");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [attempts, setAttempts] = useState<Attempt[]>([]);
-  const [form, setForm] = useState<Player>({
+  const [answers, setAnswers] = useState({});
+  const [attempts, setAttempts] = useState([]);
+  const [form, setForm] = useState({
     employeeId: "",
     fullName: "",
     nickname: "",
@@ -463,8 +348,8 @@ export default function DailyTeamWiseChallenge() {
   const todaysQuestions = [roleQuestion];
 
   useEffect(() => {
-    const savedPlayer = loadJson<Player | null>(STORAGE_KEY, null);
-    const savedAttempts = loadJson<Attempt[]>(ATTEMPT_KEY, []);
+    const savedPlayer = loadJson(STORAGE_KEY, null);
+    const savedAttempts = loadJson(ATTEMPT_KEY, []);
     setAttempts(savedAttempts);
 
     if (savedPlayer?.employeeId) {
@@ -494,12 +379,12 @@ export default function DailyTeamWiseChallenge() {
   const savePlayer = () => {
     if (!form.employeeId.trim() || !form.fullName.trim() || !form.nickname.trim() || !form.team.trim()) return;
 
-    const newPlayer: Player = {
+    const newPlayer = {
       employeeId: form.employeeId.trim(),
       fullName: form.fullName.trim(),
       nickname: form.nickname.trim(),
       team: form.team.trim(),
-      primaryRole: form.primaryRole === "member" ? "member" : "leader",
+      primaryRole: form.primaryRole,
       registeredAt: player?.registeredAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -511,12 +396,11 @@ export default function DailyTeamWiseChallenge() {
   };
 
   const submitQuiz = () => {
-    if (!player) return;
     const selectedQuestion = roleQuestion;
     const selectedOption = selectedQuestion.options.find((o) => o.id === answers[selectedQuestion.id]);
     const score = selectedOption?.score || 0;
 
-    const attempt: Attempt = {
+    const attempt = {
       employeeId: player.employeeId,
       nickname: player.nickname,
       displayName: getDisplayName(player),
@@ -529,6 +413,14 @@ export default function DailyTeamWiseChallenge() {
       totalScore: score,
       maxScore: 10,
       level: levelFromScore(score),
+      answers: {
+        [selectedRole]: {
+          questionId: selectedQuestion.id,
+          selectedOptionId: selectedOption?.id,
+          selectedLabel: selectedOption?.label,
+          score,
+        },
+      },
       completedAt: new Date().toISOString(),
     };
 
@@ -568,7 +460,9 @@ export default function DailyTeamWiseChallenge() {
         streak: 1,
       }));
 
-    return [...todayAttempts, ...demoRanking].sort((a, b) => b.score - a.score).slice(0, 8);
+    return [...todayAttempts, ...demoRanking]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
   }, [attempts, today]);
 
   const attemptForResult = currentAttempt || {
@@ -597,7 +491,7 @@ export default function DailyTeamWiseChallenge() {
               </div>
               <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Daily TeamWise Challenge</h1>
               <p className="mt-2 max-w-2xl text-slate-600">
-                ตอบวันละ 1 คำถามตามบทบาทหลักของคุณ เพื่อฝึกพฤติกรรมการทำงานที่สร้าง well-being พร้อมสะสมคะแนนและ Ranking อย่างต่อเนื่อง
+                เพียงตอบวันละ 1 คำถาม ตามบทบาทหลักของคุณ เพื่อฝึกฝนการแสดงออก ปรับทัศนคติของแต่ละบุคคล ที่ช่วยสร้างให้ที่ทำงานเป็น well-being org. พร้อมสะสมคะแนนและจัดระดับพัฒนาการอย่างต่อเนื่อง
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -608,8 +502,8 @@ export default function DailyTeamWiseChallenge() {
         </motion.div>
 
         {screen === "register" && (
-          <Card>
-            <div className="p-6">
+          <Card className="rounded-3xl shadow-sm">
+            <CardContent className="p-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-2xl bg-slate-100 p-3"><Users className="h-6 w-6" /></div>
                 <div>
@@ -621,11 +515,11 @@ export default function DailyTeamWiseChallenge() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>เลข ID พนักงาน</Label>
-                  <Input value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} placeholder="เช่น EMP00123" />
+                  <Input value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} placeholder="ตัวเลขจำนวน 8 หลัก" />
                 </div>
                 <div className="space-y-2">
-                  <Label>ชื่อจริง</Label>
-                  <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="ใช้แยกตัวบุคคลหลังบ้าน" />
+                  <Label>ชื่อ-นามสกุล</Label>
+                  <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="สำหรับลงทะเบียนครั้งแรกเท่านั้น" />
                 </div>
                 <div className="space-y-2">
                   <Label>ชื่อเล่น</Label>
@@ -659,51 +553,53 @@ export default function DailyTeamWiseChallenge() {
                 ระบบจะจำข้อมูลผู้เล่นไว้บนเครื่องนี้ เพื่อให้ครั้งต่อไปเข้าเล่นได้โดยไม่ต้องกรอกใหม่ หากใช้เครื่องสาธารณะ กรุณากด “เปลี่ยนผู้เล่น” หลังเล่นเสร็จ
               </p>
 
-              <Button className="mt-5 w-full py-5 text-base" onClick={savePlayer}>บันทึกและเริ่มใช้งาน</Button>
-            </div>
+              <Button className="mt-5 w-full rounded-2xl py-6 text-base" onClick={savePlayer}>บันทึกและเริ่มใช้งาน</Button>
+            </CardContent>
           </Card>
         )}
 
         {screen === "welcome" && player && (
-          <Card className="overflow-hidden">
-            <div className="grid md:grid-cols-[1.2fr_0.8fr]">
-              <div className="p-8">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
-                  <Sparkles className="h-4 w-4" /> Welcome Back
+          <Card className="overflow-hidden rounded-3xl shadow-sm">
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-[1.2fr_0.8fr]">
+                <div className="p-8">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+                    <Sparkles className="h-4 w-4" /> Welcome Back
+                  </div>
+                  <h2 className="text-3xl font-bold">ยินดีต้อนรับกลับ “{player.nickname}”</h2>
+                  <p className="mt-3 text-lg text-slate-600">
+                    บทบาทหลักของคุณคือ: <span className="font-semibold text-slate-900">{roleLabels[player.primaryRole]}</span>
+                  </p>
+                  <div className="mt-6 rounded-3xl bg-slate-900 p-6 text-white">
+                    <p className="text-2xl font-semibold leading-relaxed">วันนี้เรามาเริ่มสร้างองค์กรที่มี well-being ไปด้วยกัน</p>
+                  </div>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <Button className="rounded-2xl px-6 py-6 text-base" onClick={() => setScreen("quiz")}>ยืนยันเข้าร่วมเล่นเกมวันนี้</Button>
+                    <Button variant="outline" className="rounded-2xl px-6 py-6 text-base" onClick={() => setScreen("register")}>แก้ไขข้อมูลของฉัน</Button>
+                  </div>
                 </div>
-                <h2 className="text-3xl font-bold">ยินดีต้อนรับกลับ “{player.nickname}”</h2>
-                <p className="mt-3 text-lg text-slate-600">
-                  บทบาทหลักของคุณคือ: <span className="font-semibold text-slate-900">{roleLabels[selectedRole]}</span>
-                </p>
-                <div className="mt-6 rounded-3xl bg-slate-900 p-6 text-white">
-                  <p className="text-2xl font-semibold leading-relaxed">วันนี้เรามาเริ่มสร้างองค์กรที่มี well-being ไปด้วยกัน</p>
-                </div>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <Button className="py-5 text-base" onClick={() => setScreen("quiz")}>ยืนยันเข้าร่วมเล่นเกมวันนี้</Button>
-                  <Button variant="outline" className="py-5 text-base" onClick={() => setScreen("register")}>แก้ไขข้อมูลของฉัน</Button>
-                </div>
-              </div>
-              <div className="bg-slate-100 p-8">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-slate-600 shadow-sm">
-                  <CalendarDays className="h-4 w-4" /> Question Bank Day {daySet.day}/7
-                </div>
-                <h3 className="mb-4 text-lg font-semibold">Daily Challenge วันนี้</h3>
-                <div className="space-y-3">
-                  <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="font-semibold">คำถามบทบาท: {roleLabels[selectedRole]}</div>
-                    <p className="text-sm text-slate-600">{roleQuestion.theme} · {roleQuestion.competency}</p>
+                <div className="bg-slate-100 p-8">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-slate-600 shadow-sm">
+                    <CalendarDays className="h-4 w-4" /> Question Bank Day {daySet.day}/7
+                  </div>
+                  <h3 className="mb-4 text-lg font-semibold">Daily Challenge วันนี้</h3>
+                  <div className="space-y-3">
+                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                      <div className="font-semibold">คำถามบทบาท: {roleLabels[selectedRole]}</div>
+                      <p className="text-sm text-slate-600">{roleQuestion.theme} · {roleQuestion.competency}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         )}
 
         {screen === "quiz" && (
           <div className="space-y-5">
             {todaysQuestions.map((question, index) => (
-              <Card key={question.id}>
-                <div className="p-6">
+              <Card key={question.id} className="rounded-3xl shadow-sm">
+                <CardContent className="p-6">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm font-medium text-slate-500">Day {daySet.day} · ข้อ {index + 1}/1 · {question.title}</div>
@@ -724,18 +620,18 @@ export default function DailyTeamWiseChallenge() {
                       </button>
                     ))}
                   </div>
-                </div>
+                </CardContent>
               </Card>
             ))}
-            <Button disabled={selectedCount < todaysQuestions.length} onClick={submitQuiz} className="w-full py-5 text-base">
+            <Button disabled={selectedCount < todaysQuestions.length} onClick={submitQuiz} className="w-full rounded-2xl py-6 text-base">
               ส่งคำตอบและดูผลลัพธ์
             </Button>
           </div>
         )}
 
         {(screen === "result" || screen === "completed") && player && (
-          <Card>
-            <div className="p-6">
+          <Card className="rounded-3xl shadow-sm">
+            <CardContent className="p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="rounded-2xl bg-slate-100 p-3"><CheckCircle2 className="h-7 w-7" /></div>
                 <div>
@@ -767,18 +663,18 @@ export default function DailyTeamWiseChallenge() {
               </div>
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => setScreen("ranking")}>ดู Ranking</Button>
-                <Button variant="outline" onClick={clearTodayForDemo}>
+                <Button className="rounded-2xl px-6 py-6" onClick={() => setScreen("ranking")}>ดู Ranking</Button>
+                <Button variant="outline" className="rounded-2xl px-6 py-6" onClick={clearTodayForDemo}>
                   <RotateCcw className="mr-2 h-4 w-4" /> เล่นซ้ำสำหรับ Demo
                 </Button>
               </div>
-            </div>
+            </CardContent>
           </Card>
         )}
 
         {screen === "ranking" && (
-          <Card>
-            <div className="p-6">
+          <Card className="rounded-3xl shadow-sm">
+            <CardContent className="p-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-2xl bg-slate-100 p-3"><Trophy className="h-7 w-7" /></div>
                 <div>
@@ -787,8 +683,8 @@ export default function DailyTeamWiseChallenge() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-2xl border bg-white">
-                <table className="w-full min-w-[620px] text-left text-sm">
+              <div className="overflow-hidden rounded-2xl border bg-white">
+                <table className="w-full text-left text-sm">
                   <thead className="bg-slate-100 text-slate-600">
                     <tr>
                       <th className="p-4">อันดับ</th>
@@ -813,10 +709,10 @@ export default function DailyTeamWiseChallenge() {
               </div>
 
               <div className="mt-5 flex gap-3">
-                <Button onClick={() => setScreen(player ? "welcome" : "register")}>กลับหน้าแรก</Button>
-                {player && <Button variant="outline" onClick={() => setScreen(currentAttempt ? "completed" : "welcome")}>ดูผลวันนี้</Button>}
+                <Button onClick={() => setScreen(player ? "welcome" : "register")} className="rounded-2xl px-6 py-6">กลับหน้าแรก</Button>
+                {player && <Button variant="outline" onClick={() => setScreen(currentAttempt ? "completed" : "welcome")} className="rounded-2xl px-6 py-6">ดูผลวันนี้</Button>}
               </div>
-            </div>
+            </CardContent>
           </Card>
         )}
       </div>
