@@ -40,3 +40,5 @@ http://localhost:3000
 ## หมายเหตุ
 
 เวอร์ชันนี้ยังใช้ `localStorage` จึงเหมาะกับ demo / prototype ก่อนเชื่อม Supabase จริงในขั้นถัดไป
+
+Updated deployment trigger.
